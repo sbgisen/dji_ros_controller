@@ -2,7 +2,6 @@
 
 namespace dji_ros_controller
 {
-
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 CallbackReturn M2006Ros2::on_init(const hardware_interface::HardwareInfo& info)
