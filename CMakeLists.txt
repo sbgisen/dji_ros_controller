@@ -1,8 +1,16 @@
 cmake_minimum_required(VERSION 3.8)
 project(dji_ros_controller)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+if(CMAKE_COMPILER_IS_GNUCXX
+   OR CMAKE_CXX_COMPILER_ID
+      MATCHES
+      "Clang"
+)
+  add_compile_options(
+    -Wall
+    -Wextra
+    -Wpedantic
+  )
 endif()
 
 # Find libraries
@@ -41,23 +49,33 @@ include_directories(
   ${controller_manager_INCLUDE_DIRS}
   ${class_loader_INCLUDE_DIRS}
   ${controller_manager_msgs_INCLUDE_DIRS}
-  ${ros2_socketcan_INCLUDE_DIRS})
+  ${ros2_socketcan_INCLUDE_DIRS}
+)
 
 ament_auto_find_build_dependencies()
 
 file(
   GLOB MSG_FILES
   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-  msg/*.msg)
+  msg/*.msg
+)
 
 # Specify additional locations of header files
 include_directories(include)
 
 # Declare a C++ executable
-file(GLOB DJI_SOURCES "src/dji_can_communication.cpp" "src/M2006Ros2.cpp")
+file(
+  GLOB
+  DJI_SOURCES
+  "src/dji_can_communication.cpp"
+  "src/M2006Ros2.cpp"
+)
 
-ament_auto_add_executable(M2006_ros2 src/M2006Ros2.cpp
-                          src/dji_can_communication.cpp)
+ament_auto_add_executable(
+  M2006_ros2
+  src/M2006Ros2.cpp
+  src/dji_can_communication.cpp
+)
 
 ament_target_dependencies(
   M2006_ros2
@@ -67,15 +85,19 @@ ament_target_dependencies(
   controller_manager
   hardware_interface
   control_toolbox
-  joint_state_broadcaster)
+  joint_state_broadcaster
+)
 
-ament_auto_add_library(${PROJECT_NAME} SHARED src/M2006Ros2.cpp
-                       src/dji_can_communication.cpp)
+ament_auto_add_library(
+  ${PROJECT_NAME}
+  SHARED
+  src/M2006Ros2.cpp
+  src/dji_can_communication.cpp
+)
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 ament_target_dependencies(${PROJECT_NAME} ${DEPENDENCIES})
-target_compile_definitions(${PROJECT_NAME}
-                           PRIVATE "HARDWARE_INTERFACE_BUILDING_DLL")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "HARDWARE_INTERFACE_BUILDING_DLL")
 
 pluginlib_export_plugin_description_file(hardware_interface M2006_hardware.xml)
 
