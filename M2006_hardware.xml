@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<library path="dji_ros_controller">
+  <class name="dji_ros_controller/M2006Ros2" type="dji_ros_controller::M2006Ros2" base_class_type="hardware_interface::SystemInterface">
+    <description>
+      The m2006_ros2_hardware system interface.
+    </description>
+  </class>
+</library>
