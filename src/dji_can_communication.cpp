@@ -202,7 +202,7 @@ void DjiCanCommunication::connect(const std::string& can_id)
 {
   try
   {
-    can_sender_ = std::make_unique<drivers::socketcan::SocketCanSender>(can_id, drivers::socketcan::CanId());
+    can_sender_ = std::make_unique<drivers::socketcan::SocketCanSender>(can_id, false, drivers::socketcan::CanId());
     can_receiver_ = std::make_unique<drivers::socketcan::SocketCanReceiver>(can_id);
   }
   catch (const std::exception& ex)
@@ -621,8 +621,8 @@ void DjiCanCommunication::initialize()
       "from_can_bus", 1000, std::bind(&DjiCanCommunication::receivedCanCallback, this, std::placeholders::_1));
   // left_pid_.initPid(3, 10.0, 0.005, 10.0, -10.0);   // i=0
   // right_pid_.initPid(3, 10.0, 0.005, 10.0, -10.0);  // i=0
-  left_pid_.initPid(0.3, 1.0, 0.001, 0.5, -0.5);
-  right_pid_.initPid(0.3, 1.0, 0.001, 0.5, -0.5);
+  left_pid_.initialize(0.3, 1.0, 0.001, 0.5, -0.5);
+  right_pid_.initialize(0.3, 1.0, 0.001, 0.5, -0.5);
 
   // 100HzでPID制御のコールバック関数を呼ぶタイマー
 }
