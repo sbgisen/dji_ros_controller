@@ -27,6 +27,7 @@
 class DjiCanCommunication : public rclcpp::Node
 {
 public:
+  explicit DjiCanCommunication(const rclcpp::NodeOptions & options);
   DjiCanCommunication();
   ~DjiCanCommunication() override;
   int sendVelocityCan(double left_target_velocity, double right_target_velocity);
@@ -84,6 +85,7 @@ private:
   int current2Data(double current_in);
   int createCanPacketAndSend(int left_data, int right_data);
   int sendCan(uint16_t dst_id, uint8_t* data);
+  static std::string getUniqueNodeName();
 
   double right_target_current_;
   double left_target_current_;

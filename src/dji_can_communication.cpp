@@ -1,5 +1,5 @@
 #include "dji_can_communication.hpp"
-
+#include <unistd.h>  // for gethostname
 ////////////////////////////////////////////
 //                                        //
 //       dji_can_communication.cpp        //
@@ -13,12 +13,25 @@ Motor: DJI M2006
 Motor Controller: C610
 */
 
+
+std::string DjiCanCommunication::getUniqueNodeName() {
+  char hostname[256];
+  if (gethostname(hostname, sizeof(hostname)) == 0) {
+    std::string node_name = "dji_can_communication_" + std::string(hostname);
+    std::replace(node_name.begin(), node_name.end(), '-', '_'); 
+    return node_name;
+  } else {
+    return "dji_can_communication_unknown";
+  }
+}
+
+
 //////////////////////////////////////
 /*  Send Velocity to CAN */
 //////////////////////////////////////
 int DjiCanCommunication::sendVelocityCan(const double left_target_velocity, const double right_target_velocity)
 {
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "left_velocity %f,
+  // RCLCPP_INFO(this->get_logger(), "left_velocity %f,
   // right_velocity %f", left_target_velocity,
   //             right_target_velocity);
   // PID制御に使用する速度指令値を更新する
@@ -50,7 +63,7 @@ int DjiCanCommunication::current2Data(double current_in)
 // 左の右のモータのデータからパケットを生成する
 int DjiCanCommunication::createCanPacketAndSend(int left_data, int right_data)
 {
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "
+  // RCLCPP_INFO(this->get_logger(), "
   // createCanPacketAndSend");
   can_data_[0] = left_data >> 8 & 0xFF;
   can_data_[1] = left_data & 0xFF;
@@ -60,7 +73,7 @@ int DjiCanCommunication::createCanPacketAndSend(int left_data, int right_data)
   can_data_[5] = 0;
   can_data_[6] = 0;
   can_data_[7] = 0;
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"),
+  // RCLCPP_INFO(this->get_logger(),
   //             "Sending CAN data: [%02X, %02X, %02X, %02X, %02X, %02X, %02X,
   //             %02X]", can_data_[0], can_data_[1], can_data_[2], can_data_[3],
   //             can_data_[4], can_data_[5], can_data_[6], can_data_[7]);
@@ -90,15 +103,15 @@ int DjiCanCommunication::createCanPacketAndSend(int left_data, int right_data)
 
   if (sendCan(0x200, can_data_))
   {
-    RCLCPP_WARN(rclcpp::get_logger("dji_can_communication"), "write error");
+    RCLCPP_WARN(this->get_logger(), "write error");
   }
   return 0;
 }
 
 int DjiCanCommunication::sendSocketCan(uint16_t dst_id, uint8_t* data)
 {
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), " sendSocketCan");
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"),
+  // RCLCPP_INFO(this->get_logger(), " sendSocketCan");
+  // RCLCPP_INFO(this->get_logger(),
   //             "Sending to ID: 0x%03X, data: [%02X, %02X, %02X, %02X, %02X,
   //             %02X, %02X, %02X]", dst_id, data[0], data[1], data[2], data[3],
   //             data[4], data[5], data[6], data[7]);
@@ -109,18 +122,18 @@ int DjiCanCommunication::sendSocketCan(uint16_t dst_id, uint8_t* data)
     msg.id = dst_id;
     msg.dlc = 8;
     // std::copy(data, data+8, msg.data.begin());
-    RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "1");
+    RCLCPP_INFO(this->get_logger(), "1");
     for (int i = 0; i < 8; i++)
     {
       msg.data[i] = data[i];
     }
-    RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "2");
+    RCLCPP_INFO(this->get_logger(), "2");
 
     can_sender_->send(
         msg.data.data(), msg.dlc,
         drivers::socketcan::CanId(0x200, 0, drivers::socketcan::FrameType::DATA, drivers::socketcan::StandardFrame),
         std::chrono::milliseconds(10));
-    RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "3");
+    RCLCPP_INFO(this->get_logger(), "3");
   }
   catch (const std::exception& ex)
   {
@@ -133,8 +146,8 @@ int DjiCanCommunication::sendSocketCan(uint16_t dst_id, uint8_t* data)
 // CANデータをデバイスに送信する。引数はコントローラIDと電流値
 int DjiCanCommunication::sendCan(uint16_t dst_id, uint8_t* data)
 {
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), " sendCan");
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"),
+  // RCLCPP_INFO(this->get_logger(), " sendCan");
+  // RCLCPP_INFO(this->get_logger(),
   //             "Sending ID: 0x%03X, data: [%02X, %02X, %02X, %02X, %02X, %02X,
   //             %02X, %02X]", dst_id, data[0], data[1], data[2], data[3],
   //             data[4], data[5], data[6], data[7]);
@@ -189,7 +202,7 @@ int DjiCanCommunication::sendCan(uint16_t dst_id, uint8_t* data)
   if (write(s, &frame, required_mtu) != required_mtu)
   {
     perror("write");
-    RCLCPP_WARN(rclcpp::get_logger("dji_can_communication"), "write error");
+    RCLCPP_WARN(this->get_logger(), "write error");
     return 1;
   }
 
@@ -242,7 +255,7 @@ void DjiCanCommunication::receive()
     // id: 513
     // receive: 0e 1b 00 00 ff ff 00 00
 
-    // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "id: %d,
+    // RCLCPP_INFO(this->get_logger(), "id: %d,
     // receive: %s", can_id, oss.str().c_str());
 
     // 左側 ////////////////////////////////////////////////////////////////
@@ -250,7 +263,7 @@ void DjiCanCommunication::receive()
     {
       //減速前の値
       double left_rad = ((frame_data[0] << 8) | frame_data[1]) * 2.0 * M_PI / 8191.0;  // 0から2*M_PIの範囲
-      // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"),
+      // RCLCPP_INFO(this->get_logger(),
       // "/received_left %f", left_rad);
 
       //減速後の値を出すため、これまでに何回転したかカウントする
@@ -306,7 +319,7 @@ void DjiCanCommunication::receive()
     {
       //減速前の値
       double right_rad = ((frame_data[0] << 8) | frame_data[1]) * 2.0 * M_PI / 8191.0;  // 0から2*M_PIの範囲
-      // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"),
+      // RCLCPP_INFO(this->get_logger(),
       // "/received_right %f", right_rad);
       //減速後の値を出すため、これまでに何回転したかカウントする
       static double right_rad_prev = 0.0;
@@ -357,21 +370,21 @@ void DjiCanCommunication::receive()
     {
       // int current_1 = (frame_data[0] << 8) | frame_data[1];
       // int current_2 = (frame_data[2] << 8) | frame_data[3];
-      // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"),
+      // RCLCPP_INFO(this->get_logger(),
       // "/received_message id: %d, ,data1 %d, data2 %d", can_id,
       //             current_1, current_2);
     }
     else if (can_id == (0x1FF))
     {
-      RCLCPP_WARN(rclcpp::get_logger("dji_can_communication"), "write error");
+      RCLCPP_WARN(this->get_logger(), "write error");
     }
     else if (can_id == (0x004))
     {
-      RCLCPP_WARN(rclcpp::get_logger("dji_can_communication"), "Controller could not connect to motors.");
+      RCLCPP_WARN(this->get_logger(), "Controller could not connect to motors.");
     }
     else
     {
-      RCLCPP_WARN(rclcpp::get_logger("dji_can_communication"), "Invalid /received_message id: %d", can_id);
+      RCLCPP_WARN(this->get_logger(), "Invalid /received_message id: %d", can_id);
     }
   }
 
@@ -397,7 +410,7 @@ void DjiCanCommunication::receive()
 void DjiCanCommunication::updateMotorStatus(std::vector<double>& status_arg)
 {
   status_arg.resize(6);
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"),
+  // RCLCPP_INFO(this->get_logger(),
   // "updateMotorStatus, %d, %d, %d, %d, %d, %d",
   // status_arg[0],status_arg[1],status_arg[2],status_arg[3],status_arg[4],status_arg[5]);
 
@@ -413,7 +426,7 @@ void DjiCanCommunication::updateMotorStatus(std::vector<double>& status_arg)
 // モータからデータを受け取ったら値を格納するコールバック関数
 void DjiCanCommunication::receivedCanCallback(const std::shared_ptr<const can_msgs::msg::Frame>& msg)
 {
-  RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "dji_can_communication->receivedCanCallback");
+  RCLCPP_INFO(this->get_logger(), "dji_can_communication->receivedCanCallback");
   if (msg->dlc == 8)
   {
     // 左側 ////////////////////////////////////////////////////////////////
@@ -524,43 +537,43 @@ void DjiCanCommunication::receivedCanCallback(const std::shared_ptr<const can_ms
     {
       // int current_1 = (msg->data[0] << 8) | msg->data[1];
       // int current_2 = (msg->data[2] << 8) | msg->data[3];
-      // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"),
+      // RCLCPP_INFO(this->get_logger(),
       // "/received_message id: %d, ,data1 %d, data2 %d", msg->id, current_1,
       // current_2);
     }
     else if (msg->id == (0x1FF))
     {
-      RCLCPP_WARN(rclcpp::get_logger("dji_can_communication"), "write error");
+      RCLCPP_WARN(this->get_logger(), "write error");
     }
     else if (msg->id == (0x004))
     {
-      RCLCPP_WARN(rclcpp::get_logger("dji_can_communication"), "Controller could not connect to motors.");
+      RCLCPP_WARN(this->get_logger(), "Controller could not connect to motors.");
     }
     else
     {
-      RCLCPP_WARN(rclcpp::get_logger("dji_can_communication"), "Invalid /received_message id: %d", msg->id);
+      RCLCPP_WARN(this->get_logger(), "Invalid /received_message id: %d", msg->id);
     }
   }
   else
   {
-    RCLCPP_WARN(rclcpp::get_logger("dji_can_communication"), "Invalid /received_message dlc %d", msg->dlc);
+    RCLCPP_WARN(this->get_logger(), "Invalid /received_message dlc %d", msg->dlc);
   }
 }
 
 // PID制御
 void DjiCanCommunication::timerCallback()
 {
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"),
+  // RCLCPP_INFO(this->get_logger(),
   // "DjiCanCommunication::timerCallback()");
   rclcpp::Time time_now = this->get_clock()->now();
 
   // 現在の速度と目標速度の更新
   double right_target_velocity = right_target_velocity_;
-  double right_velocity = status_[VELOCITY_RIGHT];
+  double right_velocity = -1.0 * status_[VELOCITY_RIGHT];
   double left_target_velocity = left_target_velocity_;
-  double left_velocity = status_[VELOCITY_LEFT];
+  double left_velocity = -1.0 * status_[VELOCITY_LEFT];
 
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "R_tar_vel: %f,
+  // RCLCPP_INFO(this->get_logger(), "R_tar_vel: %f,
   // R_vel: %f, L_tar_vel: %f, L_vel: %f", right_target_velocity,
   // right_velocity, left_target_velocity, left_velocity);
 
@@ -569,12 +582,12 @@ void DjiCanCommunication::timerCallback()
 
   uint64_t dt = time_diff.nanoseconds();
 
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "duration dt: %ld
-  // nanoseconds", dt); RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"),
+  // RCLCPP_INFO(this->get_logger(), "duration dt: %ld
+  // nanoseconds", dt); RCLCPP_INFO(this->get_logger(),
   // "duration diff: %s", std::to_string(time_diff.nanoseconds()).c_str());
 
-  right_target_current_ = 1.0 * right_pid_.computeCommand(right_target_velocity - right_velocity, dt);
-  left_target_current_ = 1.0 * left_pid_.computeCommand(left_target_velocity - left_velocity, dt);
+  right_target_current_ = -1.0 * right_pid_.computeCommand(right_target_velocity - right_velocity, dt);
+  left_target_current_ = -1.0 * left_pid_.computeCommand(left_target_velocity - left_velocity, dt);
   // ROS_INFO("timerCallback: right: %f -> %f, left: %f ->
   // %f",right_target_velocity , right_velocity, left_target_velocity  ,
   // left_velocity);
@@ -604,7 +617,7 @@ void DjiCanCommunication::timerCallback()
   double right_data = current2Data(right_target_current);
   double left_data = current2Data(left_target_current);
 
-  // RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "R_tar_cur: %f,
+  // RCLCPP_INFO(this->get_logger(), "R_tar_cur: %f,
   // L_tar_cur: %f, R_data: %f, L_data: %f",
   //             right_target_current, left_target_current, right_data,
   //             left_data);
@@ -616,7 +629,7 @@ void DjiCanCommunication::timerCallback()
 
 void DjiCanCommunication::initialize()
 {
-  RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "dji_can_communication->initialize");
+  RCLCPP_INFO(this->get_logger(), "dji_can_communication->initialize");
   sub_can_ = this->create_subscription<can_msgs::msg::Frame>(
       "from_can_bus", 1000, std::bind(&DjiCanCommunication::receivedCanCallback, this, std::placeholders::_1));
   // left_pid_.initPid(3, 10.0, 0.005, 10.0, -10.0);   // i=0
@@ -651,9 +664,10 @@ void DjiCanCommunication::stopTimer()
 /////////////////////////////
 /*  コンストラクタ         */
 /////////////////////////////
-DjiCanCommunication::DjiCanCommunication() : Node("dji_can_communication"), timer_running_(false)
+DjiCanCommunication::DjiCanCommunication(const rclcpp::NodeOptions& options)
+: Node(getUniqueNodeName(), options), timer_running_(false)
 {
-  RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "Constructor");
+  RCLCPP_INFO(this->get_logger(), "Constructor");
   TORQUE_COEFFICIENT_ = 0.18;  //トルク計数
   REDUCTION_RATIO_ = 36;       //減速比
   MAX_CURRENT_ = 10.000;       // C610の最大電流
@@ -672,8 +686,11 @@ DjiCanCommunication::DjiCanCommunication() : Node("dji_can_communication"), time
   //   timer_ = this->create_wall_timer(std::chrono::milliseconds(10),
   //   std::bind(&DjiCanCommunication::timerCallback, this));
 
-  RCLCPP_INFO(rclcpp::get_logger("dji_can_communication"), "DjiCanCommunication::DjiCanCommunication() -> SUCCEED");
+  RCLCPP_INFO(this->get_logger(), "DjiCanCommunication::DjiCanCommunication() -> SUCCEED");
 }
+
+DjiCanCommunication::DjiCanCommunication()
+: DjiCanCommunication(rclcpp::NodeOptions{}) {}
 
 DjiCanCommunication::~DjiCanCommunication()
 {
@@ -694,3 +711,6 @@ DjiCanCommunication::~DjiCanCommunication()
 //   rclcpp::spin(node);
 //   return 0;
 // }
+
+#include "pluginlib/class_list_macros.hpp"
+PLUGINLIB_EXPORT_CLASS(DjiCanCommunication, rclcpp::Node)
