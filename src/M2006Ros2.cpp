@@ -47,6 +47,8 @@ CallbackReturn M2006Ros2::on_configure(const rclcpp_lifecycle::State& /*previous
 CallbackReturn M2006Ros2::on_activate(const rclcpp_lifecycle::State& /*previous_state*/)
 {
   RCLCPP_INFO(rclcpp::get_logger("M2006Ros2"), "on_activate");
+  rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+  last_keep_alive_time_ = steady_clock.now() - rclcpp::Duration::from_seconds(1000.0);
   return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
@@ -142,8 +144,31 @@ hardware_interface::return_type M2006Ros2::read(const rclcpp::Time& /*time*/, co
   return hardware_interface::return_type::OK;
 }
 
-hardware_interface::return_type M2006Ros2::write(const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
+hardware_interface::return_type M2006Ros2::write(const rclcpp::Time& time, const rclcpp::Duration& /*period*/)
 {
+  rclcpp::Time now = time;
+  rclcpp::Duration interval = now - last_keep_alive_time_;
+
+  // コマンドがすべてゼロなら
+  bool all_zero = std::all_of(hw_commands_.begin(), hw_commands_.end(), [](double v) {
+    return std::abs(v) < 1e-5;
+  });
+
+  const double keepalive_interval_sec = 30.0;
+  const double keepalive_velocity = 0.1;
+
+  if (all_zero && interval.seconds() >= keepalive_interval_sec)
+  {
+    RCLCPP_INFO(rclcpp::get_logger("M2006Ros2"), "Sending keep-alive pulse: %.2f rad/s", keepalive_velocity);
+    dji_can_->sendVelocityCan(keepalive_velocity, -keepalive_velocity);
+
+    last_keep_alive_time_ = now;
+  }
+  else
+  {
+    dji_can_->sendVelocityCan(hw_commands_[0], -1.0 * hw_commands_[1]);
+  }
+
   // RCLCPP_INFO(rclcpp::get_logger("M2006Ros2"), "write");
 
   // std::stringstream ss;
@@ -161,7 +186,7 @@ hardware_interface::return_type M2006Ros2::write(const rclcpp::Time& /*time*/, c
   // コマンドを送信
   // RCLCPP_INFO(rclcpp::get_logger("M2006Ros2"), "CM1: %f, CM2: %f",
   // hw_commands_[0], hw_commands_[1]);
-  dji_can_->sendVelocityCan(hw_commands_[0], -1.0 * hw_commands_[1]);
+  // dji_can_->sendVelocityCan(hw_commands_[0], -1.0 * hw_commands_[1]);
 
   return hardware_interface::return_type::OK;
 }

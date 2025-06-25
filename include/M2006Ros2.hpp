@@ -54,6 +54,7 @@ private:
   std::vector<double> hw_efforts_;
   std::vector<std::string> joint_names_;
   std::string joint_name_;
+  rclcpp::Time last_keep_alive_time_;
 
   enum Params
   {
