@@ -239,7 +239,7 @@ void DjiCanCommunication::receive()
   {
     // auto receive_id = receiver_->receive(frame_data,
     // std::chrono::milliseconds(10));
-    auto receive_id = can_receiver_->receive(frame_data, std::chrono::milliseconds(10));
+    auto receive_id = can_receiver_->receive(frame_data, std::chrono::milliseconds(100));
     uint32_t can_id = receive_id.identifier();
 
     // std::size_t index = static_cast<std::size_t>(frame_data[0] - 1);
@@ -634,8 +634,10 @@ void DjiCanCommunication::initialize()
       "from_can_bus", 1000, std::bind(&DjiCanCommunication::receivedCanCallback, this, std::placeholders::_1));
   // left_pid_.initPid(3, 10.0, 0.005, 10.0, -10.0);   // i=0
   // right_pid_.initPid(3, 10.0, 0.005, 10.0, -10.0);  // i=0
-  left_pid_.initialize(0.3, 1.0, 0.001, 0.5, -0.5);
-  right_pid_.initialize(0.3, 1.0, 0.001, 0.5, -0.5);
+  // left_pid_.initialize(0.25, 0.01, 0.002, 0.1, -0.1); //orange 19V
+  // right_pid_.initialize(0.25, 0.01, 0.002, 0.1, -0.1);  //orange 19V
+  left_pid_.initialize(0.15, 0.003, 0.003, 0.1, -0.1);
+  right_pid_.initialize(0.15, 0.003, 0.003, 0.1, -0.1);
 
   // 100HzでPID制御のコールバック関数を呼ぶタイマー
 }
