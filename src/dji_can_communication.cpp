@@ -1,4 +1,6 @@
 #include "dji_can_communication.hpp"
+#include <ros2_socketcan/socket_can_id.hpp>
+#include <thread>
 #include <unistd.h>  // for gethostname
 ////////////////////////////////////////////
 //                                        //
@@ -237,10 +239,12 @@ void DjiCanCommunication::receive()
 
   while (true)
   {
-    // auto receive_id = receiver_->receive(frame_data,
-    // std::chrono::milliseconds(10));
+    try
+    {
     auto receive_id = can_receiver_->receive(frame_data, std::chrono::milliseconds(100));
     uint32_t can_id = receive_id.identifier();
+    last_receive_time_ = this->get_clock()->now();
+    can_healthy_ = true;
 
     // std::size_t index = static_cast<std::size_t>(frame_data[0] - 1);
 
@@ -385,6 +389,18 @@ void DjiCanCommunication::receive()
     else
     {
       RCLCPP_WARN(this->get_logger(), "Invalid /received_message id: %d", can_id);
+    }
+    }
+    catch (const drivers::socketcan::SocketCanTimeout &)
+    {
+      // タイムアウトは正常範囲、続行
+    }
+    catch (const std::exception & ex)
+    {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 1000,
+        "CAN receive error: %s — retrying...", ex.what());
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
 
@@ -567,6 +583,23 @@ void DjiCanCommunication::timerCallback()
   // "DjiCanCommunication::timerCallback()");
   rclcpp::Time time_now = this->get_clock()->now();
 
+  // CANタイムアウト検出: 300ms以上受信がなければ安全停止
+  double receive_age = (time_now - last_receive_time_).seconds();
+  if (receive_age > 0.3 && can_healthy_) {
+    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+      "CAN receive timeout (%.2fs), stopping motors", receive_age);
+    can_healthy_ = false;
+  }
+  if (!can_healthy_) {
+    left_target_velocity_ = 0.0;
+    right_target_velocity_ = 0.0;
+    left_pid_.reset();
+    right_pid_.reset();
+    createCanPacketAndSend(0, 0);
+    last_time_ = time_now;
+    return;
+  }
+
   // 現在の速度と目標速度の更新
   double right_target_velocity = right_target_velocity_;
   double right_velocity = -1.0 * status_[VELOCITY_RIGHT];
@@ -682,6 +715,8 @@ DjiCanCommunication::DjiCanCommunication(const rclcpp::NodeOptions& options)
   left_target_current_ = 0;
 
   last_time_ = this->get_clock()->now();
+  last_receive_time_ = this->get_clock()->now();
+  can_healthy_ = false;
 
   initialize();
   startTimer();

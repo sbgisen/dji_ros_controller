@@ -100,6 +100,9 @@ private:
   rclcpp::Time getTime();
   rclcpp::Duration getPeriod();
 
+  rclcpp::Time last_receive_time_;
+  std::atomic<bool> can_healthy_;
+
   int motor_id_;
   int motor_rpm_;
   double motor_current_;
