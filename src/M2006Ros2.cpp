@@ -134,10 +134,13 @@ hardware_interface::return_type M2006Ros2::read(const rclcpp::Time& /*time*/, co
   }
 
   // ステータスを各ジョイントの状態に反映
+  // joint[0](right_wheel_joint)は左モーターエンコーダーを使用しており
+  // 前進時に符号が逆になるため反転する
   for (size_t i = 0; i < hw_positions_.size(); ++i)
   {
-    hw_positions_[i] = status[i * 3 + 0];
-    hw_velocities_[i] = status[i * 3 + 1];
+    const double sign = (i == 0) ? -1.0 : 1.0;
+    hw_positions_[i] = sign * status[i * 3 + 0];
+    hw_velocities_[i] = sign * status[i * 3 + 1];
     hw_efforts_[i] = status[i * 3 + 2];
   }
 

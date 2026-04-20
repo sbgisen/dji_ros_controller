@@ -278,10 +278,10 @@ void DjiCanCommunication::receive()
       if (left_rad < 1.0 / 4.0 * M_PI && 3.0 / 4.0 * M_PI < left_rad_prev)
       {
         left_revolution_count++;
-        if (left_revolution_count == 36)
-        {
-          left_revolution_count = 0;
-        }
+        // if (left_revolution_count == 36)
+        // {
+        //   left_revolution_count = 0;
+        // }
         // ROS_INFO("left_revolution_count++ = %d :
         // %f,%f",left_revolution_count, left_rad, left_rad_prev);
         //負回転
@@ -289,10 +289,10 @@ void DjiCanCommunication::receive()
       else if (left_rad_prev < 1.0 / 4.0 * M_PI && 3.0 / 4.0 * M_PI < left_rad)
       {
         left_revolution_count--;
-        if (left_revolution_count == -1)
-        {
-          left_revolution_count = 35;
-        }
+        // if (left_revolution_count == -1)
+        // {
+        //   left_revolution_count = 35;
+        // }
         // ROS_INFO("left_revolution_count-- = %d :
         // %f,%f",left_revolution_count, left_rad, left_rad_prev);
       }
@@ -301,8 +301,9 @@ void DjiCanCommunication::receive()
       // 減速後の値(タイヤが何回転したか)を出す
       // 0から(36*2*M_PI)の範囲の値からREDUCTION_RARIOを割り、[0から2*M_PI]までの範囲にする
       double left_rad_reduced = (left_rad + (2 * M_PI * left_revolution_count)) / REDUCTION_RATIO_;
+      
       // Cuboidくん用DiffDriveControllerに合わせるため値の範囲を(-M_PIからM_PI)に変更する
-      left_rad_reduced -= M_PI;
+      // left_rad_reduced -= M_PI;
 
       // タイヤのRPMを保存する
       int16_t left_rpm = (frame_data[2] << 8) | frame_data[3];
@@ -332,10 +333,6 @@ void DjiCanCommunication::receive()
       if (right_rad < 1.0 / 4.0 * M_PI && 3.0 / 4.0 * M_PI < right_rad_prev)
       {
         right_revolution_count++;
-        if (right_revolution_count == 36)
-        {
-          right_revolution_count = 0;
-        }
         // ROS_INFO("right_revolution_count++ = %d :
         // %f,%f",right_revolution_count, right_rad, right_rad_prev);
         //負回転
@@ -343,10 +340,6 @@ void DjiCanCommunication::receive()
       else if (right_rad_prev < 1.0 / 4.0 * M_PI && 3.0 / 4.0 * M_PI < right_rad)
       {
         right_revolution_count--;
-        if (right_revolution_count == -1)
-        {
-          right_revolution_count = 35;
-        }
         // ROS_INFO("right_revolution_count-- = %d :
         // %f,%f",right_revolution_count, right_rad, right_rad_prev);
       }
@@ -355,7 +348,7 @@ void DjiCanCommunication::receive()
       // 0から(36*2*M_PI)の範囲の値からREDUCTION_RARIOを割り、[0から2*M_PI]までの範囲にする
       double right_rad_reduced = (right_rad + (2 * M_PI * right_revolution_count)) / REDUCTION_RATIO_;
       // 値の範囲を(-M_PIからM_PI)に変更する
-      right_rad_reduced -= M_PI;
+      // right_rad_reduced -= M_PI;
 
       // タイヤのRPMを保存する
       int16_t right_rpm = (frame_data[2] << 8) | frame_data[3];
@@ -459,10 +452,10 @@ void DjiCanCommunication::receivedCanCallback(const std::shared_ptr<const can_ms
       if (left_rad < 1.0 / 4.0 * M_PI && 3.0 / 4.0 * M_PI < left_rad_prev)
       {
         left_revolution_count++;
-        if (left_revolution_count == 36)
-        {
-          left_revolution_count = 0;
-        }
+        // if (left_revolution_count == 36)
+        // {
+        //   left_revolution_count = 0;
+        // }
         // ROS_INFO("left_revolution_count++ = %d :
         // %f,%f",left_revolution_count, left_rad, left_rad_prev);
         //負回転
@@ -470,10 +463,10 @@ void DjiCanCommunication::receivedCanCallback(const std::shared_ptr<const can_ms
       else if (left_rad_prev < 1.0 / 4.0 * M_PI && 3.0 / 4.0 * M_PI < left_rad)
       {
         left_revolution_count--;
-        if (left_revolution_count == -1)
-        {
-          left_revolution_count = 35;
-        }
+        // if (left_revolution_count == -1)
+        // {
+        //   left_revolution_count = 35;
+        // }
         // ROS_INFO("left_revolution_count-- = %d :
         // %f,%f",left_revolution_count, left_rad, left_rad_prev);
       }
@@ -483,7 +476,7 @@ void DjiCanCommunication::receivedCanCallback(const std::shared_ptr<const can_ms
       // 0から(36*2*M_PI)の範囲の値からREDUCTION_RARIOを割り、[0から2*M_PI]までの範囲にする
       double left_rad_reduced = (left_rad + (2 * M_PI * left_revolution_count)) / REDUCTION_RATIO_;
       // Cuboidくん用DiffDriveControllerに合わせるため値の範囲を(-M_PIからM_PI)に変更する
-      left_rad_reduced -= M_PI;
+      // left_rad_reduced -= M_PI;
 
       // タイヤのRPMを保存する
       int16_t left_rpm = (msg->data[2] << 8) | msg->data[3];
@@ -511,10 +504,10 @@ void DjiCanCommunication::receivedCanCallback(const std::shared_ptr<const can_ms
       if (right_rad < 1.0 / 4.0 * M_PI && 3.0 / 4.0 * M_PI < right_rad_prev)
       {
         right_revolution_count++;
-        if (right_revolution_count == 36)
-        {
-          right_revolution_count = 0;
-        }
+        // if (right_revolution_count == 36)
+        // {
+        //   right_revolution_count = 0;
+        // }
         // ROS_INFO("right_revolution_count++ = %d :
         // %f,%f",right_revolution_count, right_rad, right_rad_prev);
         //負回転
@@ -522,10 +515,10 @@ void DjiCanCommunication::receivedCanCallback(const std::shared_ptr<const can_ms
       else if (right_rad_prev < 1.0 / 4.0 * M_PI && 3.0 / 4.0 * M_PI < right_rad)
       {
         right_revolution_count--;
-        if (right_revolution_count == -1)
-        {
-          right_revolution_count = 35;
-        }
+        // if (right_revolution_count == -1)
+        // {
+        //   right_revolution_count = 35;
+        // }
         // ROS_INFO("right_revolution_count-- = %d :
         // %f,%f",right_revolution_count, right_rad, right_rad_prev);
       }
