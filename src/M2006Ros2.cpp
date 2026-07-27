@@ -148,13 +148,27 @@ hardware_interface::return_type M2006Ros2::read(const rclcpp::Time& /*time*/, co
 
   // ステータスを各ジョイントの状態に反映
   // joint[0](right_wheel_joint)は左モーターエンコーダーを使用しており
-  // 前進時に符号が逆になるため反転する
+  // 前進時に符号が逆になるため反転する(pinkの配線)
+  //
+  // yellowはwrite()側でCANモータの割り当て自体が入れ替わっている(invert_wheel_direction_、
+  // 前後反転修正時に判明)。read()側は従来pink固定の対応(joint0←CAN左, joint1←CAN右)の
+  // ままだったため、write()を直しても走行方向どおりにodomが積算されず、物理的には正しく
+  // 前進しているのに地図上では後退して見えていた(2026-07-27判明)。write()と対称に、
+  // yellowではjoint0←CAN右, joint1←CAN左へ読み出し元を入れ替える(符号自体は変えない)。
+  //
+  // On yellow, write() already swaps which CAN motor each joint drives
+  // (invert_wheel_direction_, derived when fixing the forward/backward reversal). read()
+  // still assumed pink's fixed mapping (joint0<-CAN left, joint1<-CAN right), so odom kept
+  // integrating in the wrong direction even after write() was fixed: physically correct
+  // forward motion showed up as backward on the map. Mirroring write()'s swap, yellow reads
+  // joint0<-CAN right, joint1<-CAN left (the per-joint sign itself is unchanged).
   for (size_t i = 0; i < hw_positions_.size(); ++i)
   {
     const double sign = (i == 0) ? -1.0 : 1.0;
-    hw_positions_[i] = sign * status[i * 3 + 0];
-    hw_velocities_[i] = sign * status[i * 3 + 1];
-    hw_efforts_[i] = status[i * 3 + 2];
+    const size_t block = invert_wheel_direction_ ? (hw_positions_.size() - 1 - i) : i;
+    hw_positions_[i] = sign * status[block * 3 + 0];
+    hw_velocities_[i] = sign * status[block * 3 + 1];
+    hw_efforts_[i] = status[block * 3 + 2];
   }
 
   return hardware_interface::return_type::OK;
