@@ -1,5 +1,7 @@
 #include "M2006Ros2.hpp"
 
+#include <unistd.h>
+
 namespace dji_ros_controller
 {
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
@@ -23,6 +25,17 @@ CallbackReturn M2006Ros2::on_init(const hardware_interface::HardwareInfo& info)
   hw_velocities_.resize(info.joints.size(), 0.0);
   hw_efforts_.resize(info.joints.size(), 0.0);
   joint_name_ = info_.hardware_parameters["joint_name"];
+
+  // yellowだけ左右の配線都合でwrite()の出力を反転させる(pinkは現状のままで正しい)
+  {
+    char hostname_buf[256] = { 0 };
+    if (gethostname(hostname_buf, sizeof(hostname_buf) - 1) == 0)
+    {
+      invert_wheel_direction_ = std::string(hostname_buf).find("yellow") != std::string::npos;
+    }
+    RCLCPP_INFO(rclcpp::get_logger("M2006Ros2"), "hostname=%s invert_wheel_direction_=%s", hostname_buf,
+               invert_wheel_direction_ ? "true" : "false");
+  }
 
   for (const auto& joint : info.joints)
   {
@@ -166,6 +179,12 @@ hardware_interface::return_type M2006Ros2::write(const rclcpp::Time& time, const
     dji_can_->sendVelocityCan(keepalive_velocity, -keepalive_velocity);
 
     last_keep_alive_time_ = now;
+  }
+  else if (invert_wheel_direction_)
+  {
+    // 前後反転の補正(回転方向は元のまま維持されるよう導出した式。導出根拠は
+    // invert_wheel_direction_ 宣言部のコメント参照)
+    dji_can_->sendVelocityCan(-1.0 * hw_commands_[1], hw_commands_[0]);
   }
   else
   {

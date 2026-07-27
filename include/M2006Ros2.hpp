@@ -55,6 +55,10 @@ private:
   std::vector<std::string> joint_names_;
   std::string joint_name_;
   rclcpp::Time last_keep_alive_time_;
+  // yellow機体は左右の配線都合でsendVelocityCanへの割り当てを反転させないと前後が逆になる
+  // (pink等は現状のままで正しく動くため、pinkに影響しないようhostnameで機体を判定する。
+  //  2026-07-27判明: 前後逆・左右回転は正常、という症状から導出した補正)
+  bool invert_wheel_direction_ = false;
 
   enum Params
   {
